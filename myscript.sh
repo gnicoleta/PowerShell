@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-[ `whoami` = root ] || { sudo "$0" "$@"; exit $?; }
 
 wget https://github.com/PowerShell/PowerShell/releases/download/v6.0.0-beta.2/powershell_6.0.0-beta.2-1ubuntu1.16.04.1_amd64.deb
 curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
