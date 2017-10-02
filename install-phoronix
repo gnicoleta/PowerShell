@@ -23,7 +23,7 @@ run_phoronix_suite()
     test=$1
     echo "$test"
     phoronix-test-suite install $test
-    phoronix-test-suite batch-run $test | tee results.txt
+    phoronix-test-suite batch-run $test | tee $test.txt
 }
 
 install_phoronix
