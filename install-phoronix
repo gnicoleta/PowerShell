@@ -1,0 +1,31 @@
+#!/bin/sh
+
+install_phoronix()
+{
+    sudo apt-get install zip -y
+    sudo apt-get install php-cli php-xml -y
+    wget http://www.phoronix-test-suite.com/download.php?file=phoronix-test-suite-7.4.0
+    mv download.php\?file\=phoronix-test-suite-7.4.0 phoronix-test-suite-7.4.0.tar.gz
+    tar -xzf phoronix-test-suite-7.4.0.tar.gz
+    cd phoronix-test-suite
+    sudo ./install-sh
+}
+
+modify_config()
+{
+    n "" | phoronix-test-suite batch-setup
+    sed -i -e "s/\(<SaveResults>\)TRUE/\1FALSE/; s/\(<OpenBrowser>\)TRUE/\1FALSE/; s/\(<UploadResults>\)TRUE/\1FALSE/; s/\(<PromptForTestIdentifier>\)TRUE/\1FALSE/; s/\(<PromptForTestDescription>\)TRUE/\1FALSE/ " ~/.phoronix-test-suite/user-config.xml
+    sed -i -e "s/\(<PromptSaveName>\)TRUE/\1FALSE/; s/\(<RunAllTestCombinations>\)FALSE/\1TRUE/; s/\(<Configured>\)FALSE/\1TRUE/ " ~/.phoronix-test-suite/user-config.xml
+}
+
+run_phoronix_suite()
+{
+    test=$1
+    echo "$test"
+    phoronix-test-suite install $test
+    phoronix-test-suite batch-run $test
+}
+
+install_phoronix
+modify_config
+run_phoronix_suite $1
