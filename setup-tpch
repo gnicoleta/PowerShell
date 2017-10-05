@@ -53,10 +53,7 @@ use_tpch()
      #run_dbgen
      change_dir
      ./dbgen -s $1
-
      mysql -u root -p --local-infile
-     CREATE DATABASE tpch;
-     USE tpch;
  }
 
 install_mysql
