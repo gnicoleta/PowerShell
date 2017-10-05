@@ -1,0 +1,64 @@
+#!/bin/sh
+
+#for secure_installation it is recommended to answer all of the questions with "y"
+#otherwise, in my case, mysql won't work
+install_mysql() 
+{
+    sudo apt-get install mysql-server -y
+    sudo mysql_secure_installation
+}
+
+make_file()
+{
+    cd /root/2.17.3/dbgen/dbgen/
+    make
+}
+
+run_dbgen()
+{
+    cd /root/2.17.3/dbgen/dbgen/
+	./dbgen -s $1
+}
+
+change_dir()
+{
+    cd /root/2.17.3/dbgen/dbgen/
+}
+
+setup_tpch()
+{
+    cp /root/2.17.3/dbgen/makefile.suite /root/2.17.3/dbgen/makefile
+
+    sed -i -e '103s/CC      =/CC      =gcc/' /root/2.17.3/dbgen/makefile
+    sed -i -e '109,111s/DATABASE=/DATABASE=SQLSERVER/' /root/2.17.3/dbgen/makefile
+    sed -i -e '109,111s/MACHINE =/MACHINE =LINUX/' /root/2.17.3/dbgen/makefile
+    sed -i -e '109,111s/WORKLOAD =/WORKLOAD =TPCH/' /root/2.17.3/dbgen/makefile
+
+
+    sed -i -e '88,95s/"begin transaction\ngo\n"/"BEGIN WORK;"/' /root/2.17.3/dbgen/tpcd.h
+    sed -i -e '88,95s/"commit transaction\ngo\n"/"COMMIT WORK;"/' /root/2.17.3/dbgen/tpcd.h
+    sed -i -e '88,95s/"set rowcount %d\ngo\n\n"/"limit %d;\n\n"/' /root/2.17.3/dbgen/tpcd.h
+    sed -i -e '88,95s/"use %s\ngo\n"/"use %s;\n"/' /root/2.17.3/dbgen/tpcd.h
+
+ #   make_file
+    change_dir
+    make
+}
+
+#give as a parameter the volume of data that you want to populate your DB
+#0.1=100MB 
+use_tpch()
+ {
+     #./root/2.17.3/dbgen/dbgen/dbgen -s $1
+     #run_dbgen
+     change_dir
+     ./dbgen -s $1
+
+     mysql -u root -p --local-infile
+     mysql> CREATE DATABASE tpch;
+     mysql> USE tpch;
+ }
+
+install_mysql
+setup_tpch
+use_tpch 0.1
