@@ -8,18 +8,6 @@ install_mysql()
     sudo mysql_secure_installation
 }
 
-make_file()
-{
-    cd /root/2.17.3/dbgen/dbgen/
-    make
-}
-
-run_dbgen()
-{
-    cd /root/2.17.3/dbgen/dbgen/
-	./dbgen -s $1
-}
-
 change_dir()
 {
     cd /root/2.17.3/dbgen/dbgen/
@@ -40,7 +28,6 @@ setup_tpch()
     sed -i -e '88,95s/"set rowcount %d\ngo\n\n"/"limit %d;\n\n"/' /root/2.17.3/dbgen/tpcd.h
     sed -i -e '88,95s/"use %s\ngo\n"/"use %s;\n"/' /root/2.17.3/dbgen/tpcd.h
 
- #   make_file
     change_dir
     make
 }
@@ -49,8 +36,6 @@ setup_tpch()
 #0.1=100MB 
 use_tpch()
  {
-     #./root/2.17.3/dbgen/dbgen/dbgen -s $1
-     #run_dbgen
      change_dir
      ./dbgen -s $1
      mysql -u root -p --local-infile
