@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+
+URL="$1"
+d_name="$2"
+email="$3"
+flavor="$4"
+net="$5"
+IP="$6"
+
+download() {
+     echo "Start downloading the $d_name image from the given URL"
+     if [[ ! -d "/home/user/$d_name" && ! -d "/home/user/errors" ]]; then
+         mkdir /home/user/$d_name
+         mkdir /home/user/$d_name/errors
+     fi
+      wget $URL -P /home/user/$d_name 2>> /home/user/$d_name/errors/errorlog
+          if test $? -ne 0
+             then echo "Error while downloading"
+                 if test -d "/home/user/$d_name"
+                     then rm -rf /home/user/$d_name
+                 fi
+             exit
+         fi
+         echo "Download done"
+
+}
+
+change_directory() {
+    cd /home/user/$d_name
+}
+
+extract() {
+    echo "Start extracting..."
+    change_directory
+    if test ! -d "/home/user/$d_name/extracted"
+        then echo "Making extracted folder"
+        mkdir extracted
+    fi
+    tar -xz -f /home/user/$d_name/*.tar.gz --directory /home/user/$d_name 2>> /home/user/$d_name/errors/errorlog
+    if test $? -ne 0
+        then echo "Error while extracting"
+        exit
+     fi
+     echo "Done extracting"
+}
+
+deploy_image() {
+     echo "Deploying $d_name image to Openstack..."
+      glance image-create --name $d_name --file /home/user/$d_name/*.img --disk-format qcow2 --container-format bare --progress
+     if test $? -ne 0
+         then echo "Error while deploying the image to Openstack"
+     else echo "Done deploying"
+     fi
+
+}
+
+create_instance() {
+     echo "Creating $d_name instance..."
+     img_id=$(nova image-list | grep $d_name | cut -f 2 -d ' ')
+     if [ -z "$net"]
+         then
+            net_id=$(neutron net-list | grep private | cut -f 2 -d ' ')
+     else net_id=$(neutron net-list | grep $net | cut -f 2 -d ' ')
+     fi
+     #key_name may differ -> add your own key_name so that you could connect to your instance afterwards
+     nova boot --image $img_id --flavor $flavor --security-groups default --nic net-id=$net_id "$d_name" --key-name your_key
+     if test $? -ne 0
+         then echo "Error while creating instance"
+     else echo "Done creating the instance"
+     fi
+}
+
+associate_floating_ip() {
+     if [ -z "$IP" ]
+       then echo "IP was not given, it will be created"
+       new_IP=$(neutron floatingip-create public | grep floating_ip_address | cut -f 4 -d ' ')
+       nova floating-ip-associate $d_name $new_IP;
+       echo "The created floating IP: $new_IP was associated to the instance"
+     else
+     find_ip=$(openstack floating ip list | grep -c $IP)
+     instance_id=$(nova list | grep $d_name | cut -f 2 -d ' ')
+
+     echo "Associating the floating IP: $IP to $d_name instance"
+     if [[ $fixed_ip = "None" && "$find_ip" -ne 0 ]];
+         then nova floating-ip-associate $d_name $IP
+                     new_IP=$d_name $IP
+             echo "The floating IP was associated to the instance"
+     else echo "The given floating IP could not be found or it's already associated"
+          echo "New Floating IP is created"
+          new_IP=$(neutron floatingip-create public | grep floating_ip_address | cut -f 4 -d ' ')
+          nova floating-ip-associate $d_name $new_IP;
+          echo "The created floating IP: $new_IP was associated to the instance"
+
+   fi
+ fi
+}
+
+send_email() {
+    #for the email to be sent, yum install mailx
+    echo "Sent email with the details about the $d_name instance"
+    echo "OK, instance: $d_name, floating ip: $new_IP" | mail -r "user" -s "Openstack instance" $email
+}
+
+get_image() {
+    download
+    if [[ $URL == *.tar.gz ]]
+            then extract
+    fi
+}
+
+cleanup() {
+ rm -rf /home/user/$d_name/
+
+}
+
+get_image
+deploy_image
+create_instance
+associate_floating_ip
+send_email
+cleanup
