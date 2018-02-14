@@ -9,15 +9,15 @@ IP="$6"
 
 download() {
      echo "Start downloading the $d_name image from the given URL"
-     if [[ ! -d "/home/user/$d_name" && ! -d "/home/user/errors" ]]; then
-         mkdir /home/user/$d_name
-         mkdir /home/user/$d_name/errors
+     if [[ ! -d "~/$d_name" && ! -d "~/errors" ]]; then
+         mkdir ~/$d_name
+         mkdir ~/$d_name/errors
      fi
-      wget $URL -P /home/user/$d_name 2>> /home/user/$d_name/errors/errorlog
+      wget $URL -P ~/$d_name 2>> ~/$d_name/errors/errorlog
           if test $? -ne 0
              then echo "Error while downloading"
-                 if test -d "/home/user/$d_name"
-                     then rm -rf /home/user/$d_name
+                 if test -d "~/$d_name"
+                     then rm -rf ~/$d_name
                  fi
              exit
          fi
@@ -26,17 +26,17 @@ download() {
 }
 
 change_directory() {
-    cd /home/user/$d_name
+    cd ~/$d_name
 }
 
 extract() {
     echo "Start extracting..."
     change_directory
-    if test ! -d "/home/user/$d_name/extracted"
+    if test ! -d "~/$d_name/extracted"
         then echo "Making extracted folder"
         mkdir extracted
     fi
-    tar -xz -f /home/user/$d_name/*.tar.gz --directory /home/user/$d_name 2>> /home/user/$d_name/errors/errorlog
+    tar -xz -f ~/$d_name/*.tar.gz --directory ~/$d_name 2>> ~/$d_name/errors/errorlog
     if test $? -ne 0
         then echo "Error while extracting"
         exit
@@ -46,7 +46,7 @@ extract() {
 
 deploy_image() {
      echo "Deploying $d_name image to Openstack..."
-      glance image-create --name $d_name --file /home/user/$d_name/*.img --disk-format qcow2 --container-format bare --progress
+      glance image-create --name $d_name --file ~/$d_name/*.img --disk-format qcow2 --container-format bare --progress
      if test $? -ne 0
          then echo "Error while deploying the image to Openstack"
      else echo "Done deploying"
@@ -109,13 +109,17 @@ get_image() {
 }
 
 cleanup() {
- rm -rf /home/user/$d_name/
+ rm -rf ~/$d_name/
 
 }
 
+main() {
 get_image
 deploy_image
 create_instance
 associate_floating_ip
 send_email
 cleanup
+}
+
+main
